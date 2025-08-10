@@ -1,0 +1,53 @@
+main:
+  steps:
+    - init:
+        assign:
+          - projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+          - region: "asia-southeast1"
+          - serviceName: "etl-sales-pipeline"
+          
+    - log_start:
+        call: sys.log
+        args:
+          text: "Starting ETL Sales Pipeline workflow"
+          severity: "INFO"
+          
+    - run_etl_job:
+        call: http.post
+        args:
+          url: "https://etl-sales-pipeline-25x4h3y4wq-as.a.run.app"
+          auth:
+            type: OIDC
+          headers:
+            Content-Type: "application/json"
+          body: "{}"
+          timeout: 1800
+        result: etl_result
+        
+    - check_result:
+        switch:
+          - condition: ${etl_result.code == 200}
+            next: success_log
+          - condition: true
+            next: failure_log
+            
+    - success_log:
+        call: sys.log
+        args:
+          text: "ETL Pipeline completed successfully"
+          severity: "INFO"
+        next: workflow_end
+        
+    - failure_log:
+        call: sys.log
+        args:
+          text: "ETL Pipeline execution failed"
+          severity: "ERROR"
+        next: workflow_error
+        
+    - workflow_error:
+        raise:
+          message: "ETL Pipeline execution failed"
+          
+    - workflow_end:
+        return: "Workflow completed successfully"

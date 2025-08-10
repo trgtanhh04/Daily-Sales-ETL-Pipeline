@@ -1,0 +1,23 @@
+[1. Người dùng upload sales.csv]                
+    |                                           
+    v                                           
+[data/sales.csv] --- (GCS) ---> [Cloud Storage bucket]
+    |                                           
+    | (Cloud Scheduler: chạy hàng ngày)         
+    v                                           
+[Cloud Workflows (infra/workflow.yaml) gọi Cloud Run]
+    |                                           
+    v                                           
+[Cloud Run chạy ETL Docker image]               
+    |                                           
+    v                                           
+[main.py (etl/main.py)]                         
+    | - Đọc file từ GCS                         
+    | - Làm sạch, chuyển đổi dữ liệu (Pandas)  
+    | - Ghi dữ liệu vào BigQuery                
+    | - (Optional) Di chuyển file đã xử lý     
+    v                                           
+[BigQuery]                                      
+    |                                           
+    v                                           
+[Looker Studio Dashboard]                       

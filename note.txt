@@ -1,0 +1,339 @@
+# SALES DATA ETL PIPELINE - COMPLETE DOCUMENTATION
+# Ngày hoàn thành: 8/8/2025
+# Status: ✅ PRODUCTION READY
+
+## 📋 TỔNG QUAN KIẾN TRÚC
+```
+[CSV Data] → [Cloud Storage] → [Cloud Scheduler] → [Cloud Workflows] → [Cloud Run] → [BigQuery] → [Looker Studio]
+```
+
+## 🔧 CÁC THÀNH PHẦN ĐÃ TRIỂN KHAI THÀNH CÔNG
+
+### 1. CLOUD STORAGE ✅
+- Bucket: `sales-bucket-ta-1-group3`
+- Region: `asia-southeast1`
+- File: `sales.csv` (1000 rows data)
+- Status: Active & Tested
+
+### 2. CLOUD RUN SERVICE ✅
+- Service Name: `etl-sales-pipeline`
+- URL: `https://etl-sales-pipeline-304934213711.asia-southeast1.run.app/`
+- Region: `asia-southeast1`
+- Image: `gcr.io/interns-2025-467409/etl-sales-pipeline:latest`
+- Port: 8080 (Flask web server)
+- Revision: `00011-qjc`
+- Status: Active & Processing Data
+
+#### Endpoints:
+- `/` - Trigger ETL pipeline (GET/POST) ✅ Tested
+- `/health` - Health check ✅ Working
+- `/test` - Service status ✅ Working
+
+### 3. BIGQUERY ✅
+- Project: `interns-2025-467409`
+- Dataset: `sales_dataset`
+- Table: `sales_table`
+- Location: `asia-southeast1`
+- Rows Processed: 1000+ (successfully loaded)
+- Status: Active & Receiving Data
+
+### 4. CLOUD WORKFLOWS ✅
+- Workflow Name: `etl-sales-workflow`
+- Location: `asia-southeast1`
+- File: `infra/workflow.yaml` (52 lines)
+- Execution Time: 8.493 seconds ✅ Tested
+- Status: Deployed & Operational
+
+### 5. CLOUD SCHEDULER ✅
+- Job Name: `daily-etl-sales-pipeline`
+- Schedule: `0 9 * * *` (Daily at 9:00 AM)
+- Timezone: Indochina Time (ICT) / GMT+7
+- Target: Cloud Workflows API
+- Auth: OIDC Token (service-account-group-3-nexlab)
+- Status: Configured & Ready
+
+## 📊 ETL PIPELINE THỰC TẾ
+
+### Data Flow đã test thành công:
+1. **Extract**: Download CSV từ Cloud Storage ✅
+2. **Transform**: 
+   - Remove null values ✅
+   - Convert data types (Date, Age, Quantity, Price, Amount) ✅
+   - Add Month/Year columns ✅
+   - Remove duplicates by Transaction ID ✅
+3. **Load**: Insert vào BigQuery với WRITE_APPEND ✅
+
+### Automation Flow hoạt động:
+```
+Daily 9:00 AM ICT ← Cloud Scheduler
+    ↓
+Cloud Workflows executes ← 8.5s execution time
+    ↓
+HTTP POST to Cloud Run ← Flask endpoints
+    ↓
+ETL processes 1000 rows ← Data transformation
+    ↓
+BigQuery receives data ← Successfully loaded
+    ↓
+Success response returned ← JSON status
+```
+
+## 🚀 DEPLOYMENT HISTORY
+
+### Build Process:
+- Docker builds: 7 iterations (Build #1-7)
+- Final deployment: Successful
+- Container Registry: Image active
+- Cloud Run: Service running on revision 00011-qjc
+
+### Issues Resolved:
+1. **PORT 8080**: Added Flask web server ✅
+2. **Import conflicts**: Consolidated files ✅
+3. **BigQuery naming**: Fixed dataset names ✅
+4. **Workflow timeout**: Optimized to 1800s ✅
+5. **YAML syntax**: Fixed formatting ✅
+
+## 📁 FINAL CODE STRUCTURE
+
+### Core Files:
+- `etl/main.py` ← Main ETL (120 lines, all functions consolidated)
+- `docker/Dockerfile` ← Container config
+- `infra/workflow.yaml` ← Orchestration (52 lines)
+- `infra/cloudbuild.yaml` ← Build automation
+- `data/sales_data.csv` ← Source data
+
+### Key Functions (main.py):
+- `clean_data()` ← Data cleaning & transformation
+- `create_bucket()` ← GCS management
+- `create_dataset_bq()` ← BigQuery setup
+- `download_blob()` ← Data extraction
+- `load_to_bq()` ← Data loading
+- `run_etl()` ← Main orchestration
+- Flask routes: `/`, `/health`, `/test`
+
+## 🔐 SECURITY & AUTHENTICATION
+
+### Service Account Used:
+- `service-account-group-3-nexlab@interns-2025-467409.iam.gserviceaccount.com`
+- Permissions: Workflows, Cloud Run, Storage, BigQuery
+- OIDC Token Authentication
+- Audience: Workflows API endpoint
+
+## 📈 TESTING RESULTS
+
+### Successfully Validated:
+✅ ETL Pipeline: 1000 rows processed correctly
+✅ Cloud Run: All endpoints responding
+✅ Workflows: 8.493s execution (SUCCESS state)
+✅ BigQuery: Data loaded and queryable  
+✅ Docker: Container running stable
+✅ Authentication: OIDC tokens working
+✅ Scheduling: Cron expression validated
+
+## 🎯 FINAL STATUS
+
+**🟢 PRODUCTION READY - ALL SYSTEMS OPERATIONAL**
+
+- ✅ Code deployed and tested
+- ✅ Infrastructure provisioned  
+- ✅ Automation configured
+- ✅ Data pipeline flowing
+- ✅ Monitoring available
+- ✅ Error handling implemented
+
+**Daily ETL sẽ chạy tự động lúc 9:00 AM ICT**
+
+---
+
+## SETUP & DEPLOYMENT LOG (Chi tiết kỹ thuật)
+
+### 1. Google Cloud Setup
+```bash
+$ gcloud auth login
+$ gcloud config set project interns-2025-467409
+$ gcloud config list
+```
+
+### 2. APIs & Services Enabled
+```bash
+$ gcloud services enable cloudbuild.googleapis.com run.googleapis.com workflows.googleapis.com cloudscheduler.googleapis.com bigquery.googleapis.com storage.googleapis.com
+```
+
+### 3. GCS Bucket Setup
+```bash
+# Tạo bucket
+$ gcloud storage buckets create gs://sales-bucket-ta-1-group3 --location=asia-southeast1
+
+# Upload data
+$ gcloud storage cp data\retail_sales.csv gs://sales-bucket-ta-1-group3/sales.csv
+
+# Verify
+$ gcloud storage ls gs://sales-bucket-ta-1-group3/
+```
+
+### 4. Service Account 
+- Đã có sẵn: `service-account-group-3-nexlab@interns-2025-467409.iam.gserviceaccount.com`
+- Roles: CustomRole675, aiplatform.user
+
+### 5. Docker Build & Deploy
+```bash
+# Build Docker image thành công
+$ gcloud builds submit --config=infra/cloudbuild-simple.yaml .
+# Result: SUCCESS - Image: gcr.io/interns-2025-467409/etl-sales-pipeline:latest
+```
+
+### 6. Cloud Run Deploy Issues
+- Lần 1: Deploy service failed - Container không listen PORT 8080
+- Giải pháp: Thêm Flask web server HOẶC sử dụng Cloud Run Jobs
+
+### 7. Config Updates
+- Updated BUCKET_NAME: "sales-bucket-ta-1-group3"  
+- Updated PATH_TO_FILE: '../data/retail_sales.csv'
+- Added SERVICE_ACCOUNT_EMAIL trong config
+
+```
+## QUY TRÌNH DEPLOY CHI TIẾT
+
+### BƯỚC 1: BUILD DOCKER IMAGE
+```bash
+gcloud builds submit --config=infra/cloudbuild.yaml .
+```
+**Giải thích:**
+- Đọc file `cloudbuild.yaml` để biết cách build
+- Copy toàn bộ code từ local vào Docker container  
+- Chạy `docker build -f docker/Dockerfile` 
+- Install dependencies từ `etl/requirements.txt`
+- Tạo image: `gcr.io/interns-2025-467409/etl-sales-pipeline:latest`
+- Push image lên Google Container Registry
+- **Kết quả:** Docker image sẵn sàng để deploy
+
+### BƯỚC 2: DEPLOY CLOUD RUN SERVICE  
+```bash
+gcloud run deploy etl-sales-pipeline \
+  --image gcr.io/interns-2025-467409/etl-sales-pipeline:latest \
+  --region asia-southeast1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --memory 2Gi \
+  --cpu 1 \
+  --timeout 3600 \
+  --max-instances 1 \
+  --set-env-vars PROJECT_ID=interns-2025-467409
+
+
+gcloud run deploy etl-sales-pipeline --image gcr.io/interns-2025-467409/etl-sales-pipeline:latest --region asia-southeast1 --platform managed --allow-unauthenticated --memory 2Gi --cpu 1 --timeout 3600 --max-instances 1 --set-env-vars PROJECT_ID=interns-2025-467409
+```
+**Giải thích:**
+- Lấy Docker image từ Container Registry
+- Tạo Cloud Run service (serverless container)
+- Service chạy `main.py` → Flask web server trên PORT 8080
+- Expose HTTP endpoints: `/`, `/health`, `/test`
+- **Kết quả:** Web service sẵn sàng nhận HTTP requests
+
+### BƯỚC 3: TRIGGER ETL PIPELINE
+```bash
+curl -X GET "https://etl-sales-pipeline-304934213711.asia-southeast1.run.app/"
+```
+**Giải thích:**
+- Gọi endpoint `/` của Cloud Run service
+- Flask app nhận request → gọi function `run_etl()`
+- ETL process: Download CSV từ GCS → Clean data → Load vào BigQuery
+- **Kết quả:** Data được xử lý và lưu vào BigQuery
+
+### BƯỚC 4: SETUP CLOUD WORKFLOWS (Tùy chọn)
+```bash
+gcloud workflows deploy etl-sales-workflow \
+  --source=infra/workflow.yaml \
+  --location=asia-southeast1
+```
+**Giải thích:**
+- Deploy workflow để orchestrate ETL pipeline
+- Workflow gọi Cloud Run service theo schedule
+- Có error handling và logging
+- **Kết quả:** Automation cho ETL pipeline
+
+### BƯỚC 5: SETUP CLOUD SCHEDULER (Tùy chọn)
+```bash
+gcloud scheduler jobs create http etl-daily-job \
+  --schedule="0 9 * * *" \
+  --uri="https://etl-sales-pipeline-304934213711.asia-southeast1.run.app/" \
+  --location=asia-southeast1
+```
+**Giải thích:**
+- Tạo cron job chạy hàng ngày lúc 9AM
+- Tự động trigger ETL pipeline
+- ### 🎉 ETL PIPELINE SUCCESS! (Build #7)
+✅ **Build Docker:** SUCCESS với pyarrow dependency  
+✅ **Deploy Cloud Run:** SUCCESS (revision 00011-qjc)  
+✅ **Flask Web Server:** Running on PORT 8080  
+✅ **Health Check:** Working `/health`  
+✅ **Debug Endpoint:** Working `/test`  
+✅ **ETL Pipeline:** SUCCESS! 1,000 rows processed
+
+**ETL Test Result:**
+```json
+{
+  "message": "ETL process completed successfully.",
+  "rows_processed": 1000,
+  "status": "success", 
+  "table": "interns-2025-467409.sales_dataset.sales_table"
+}
+```
+
+**Complete Workflow:**
+1. ✅ Download CSV from GCS bucket `sales-bucket-ta-1-group3/sales.csv`
+2. ✅ Clean and transform data (1,000 records) 
+3. ✅ Load to BigQuery table `interns-2025-467409.sales_dataset.sales_table`
+
+**Architecture:**
+- **Main File:** `etl/main.py` (Flask app với full ETL logic)
+- **Dockerfile:** `docker/Dockerfile` → runs `etl/main.py`
+- **Dependencies:** `etl/requirements.txt` (pandas, google-cloud-*, flask, pyarrow)
+- **Config:** `config/config.py` với fallback environment variables
+- **Utils:** `etl/utils.py` với fallback implementations
+
+**Cleaned up:** Removed simple_main.py và Dockerfile.simple (không cần thiết)
+
+**Service URL:** https://etl-sales-pipeline-304934213711.asia-southeast1.run.app
+
+**Next Steps:**
+1. ✅ ETL Pipeline fully functional
+2. ✅ Setup Cloud Workflows automation (SUCCESS - 8.493s execution)
+3. [ ] Configure Cloud Scheduler for daily runs
+4. [ ] Build Looker Studio dashboard
+5. [ ] Verify BigQuery data
+
+### 🎉 CLOUD WORKFLOWS SUCCESS!
+```bash
+# Deployed successfully:
+$ gcloud workflows deploy etl-sales-workflow --source=infra/workflow.yaml --location=asia-southeast1
+
+# Workflow Details:
+- Name: etl-sales-workflow
+- Location: asia-southeast1  
+- State: ACTIVE
+- Latest Execution: SUCCEEDED (8.493 seconds)
+- Timeout: Fixed to 1800s (30 minutes)
+
+# Execution Results:
+✅ workflow_end: Succeeded 
+✅ Full orchestration working
+✅ ETL pipeline triggered via workflow
+```
+
+**Workflow Features:**
+✅ Orchestrates ETL pipeline via HTTP calls  
+✅ Error handling with success/failure logging
+✅ Cloud Logging integration
+✅ Ready for Cloud Scheduler integration
+✅ **TESTED & WORKING** 🚀
+
+
+# Tạo schedule:
+gcloud scheduler jobs create http daily-etl-sales-pipeline --location=asia-southeast1 --schedule="0 9 * * *" --time-zone="Asia/Saigon" --uri="https://workflows.googleapis.com/v1/projects/interns-2025-467409/locations/asia-southeast1/workflows/etl-sales-workflow/executions" --http-method=POST --oidc-service-account-email=service-account-group-3-nexlab@interns-2025-467409.iam.gserviceaccount.com --headers="Content-Type=application/json" --message-body="{}" --description="Daily ETL pipeline for sales data processing"
+
+# Force run scheduler job để test ngay
+gcloud scheduler jobs run daily-etl-sales-pipeline --location=asia-southeast1
+
+# Xóa schedule: 
+gcloud scheduler jobs delete daily-etl-sales-pipeline --location=asia-southeast1 --quiet
